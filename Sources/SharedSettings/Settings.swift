@@ -10,6 +10,7 @@ import Foundation
 nonisolated final class Settings: @unchecked Sendable {
 	public static nonisolated let instance = Settings()
 	
+	// UserDefaults is threadsafe, according to the documentation, so we're okay to use it in a nonisolated context
 	var userDefaults: UserDefaults? = UserDefaults.standard
 	
 	@MainActor public func set(userDefaults: UserDefaults) {

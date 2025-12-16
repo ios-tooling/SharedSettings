@@ -7,15 +7,15 @@
 
 import SwiftUI
 
-@propertyWrapper @MainActor struct Setting<Key: SettingsKey>: DynamicProperty {
-	init(_ key: Key.Type) {
+@propertyWrapper @MainActor public struct Setting<Key: SettingsKey>: DynamicProperty {
+	public init(_ key: Key.Type) {
 		self.key = key
 	}
 	
 	let key: Key.Type
 	var settings = ObservedSettings.instance
 	
-	var wrappedValue: Key.Payload {
+	public var wrappedValue: Key.Payload {
 		get {
 			settings[key] ?? Key.defaultValue
 		}
@@ -24,7 +24,7 @@ import SwiftUI
 		}
 	}
 	
-	var projectedValue: Binding<Key.Payload> {
+	public var projectedValue: Binding<Key.Payload> {
 		.init {
 			wrappedValue
 		} set: { newValue in
