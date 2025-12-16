@@ -8,11 +8,15 @@
 import Foundation
 
 nonisolated final class Settings: @unchecked Sendable {
-	public static let instance = Settings()
+	public static nonisolated let instance = Settings()
 	
 	var userDefaults: UserDefaults? = UserDefaults.standard
 	
-	subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
+	@MainActor public func set(userDefaults: UserDefaults) {
+		self.userDefaults = userDefaults
+	}
+	
+	nonisolated subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
 		get {
 			if let userDefaults {
 				return key.from(userDefaults: userDefaults)
