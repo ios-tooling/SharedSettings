@@ -40,6 +40,11 @@ extension SettingsKey where Payload == Data {
 	public static func set(_ value: Payload?, in userDefaults: UserDefaults) { userDefaults.set(value, forKey: name) }
 }
 
+extension SettingsKey where Payload == Date {
+	public static func from(userDefaults: UserDefaults) -> Payload? { userDefaults.object(forKey: name) as? Date }
+	public static func set(_ value: Payload?, in userDefaults: UserDefaults) { userDefaults.set(value, forKey: name) }
+}
+
 extension SettingsKey where Payload == Int {
 	public static func from(userDefaults: UserDefaults) -> Payload? {
 		if userDefaults.object(forKey: name) == nil { return nil }
@@ -48,7 +53,7 @@ extension SettingsKey where Payload == Int {
 	public static func set(_ value: Payload?, in userDefaults: UserDefaults) { userDefaults.set(value, forKey: name) }
 }
 
-extension SettingsKey where Payload: RawRepresentable, Payload.RawValue == String {
+extension SettingsKey where Payload: RawRepresentable, Payload.RawValue == String, Payload: Codable {
 	public static func from(userDefaults: UserDefaults) -> Payload? {
 		guard let raw = userDefaults.string(forKey: name) else { return nil }
 		return Payload(rawValue: raw)
@@ -56,7 +61,7 @@ extension SettingsKey where Payload: RawRepresentable, Payload.RawValue == Strin
 	public static func set(_ value: Payload?, in userDefaults: UserDefaults) { userDefaults.set(value?.rawValue, forKey: name) }
 }
 
-extension SettingsKey where Payload: RawRepresentable, Payload.RawValue == Int {
+extension SettingsKey where Payload: RawRepresentable, Payload.RawValue == Int, Payload: Codable {
 	public static func from(userDefaults: UserDefaults) -> Payload? {
 		if userDefaults.object(forKey: name) == nil { return nil }
 		let raw = userDefaults.integer(forKey: name)

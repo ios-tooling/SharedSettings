@@ -7,8 +7,8 @@
 
 import Foundation
 
-public protocol SettingsKey<Payload> {
-	associatedtype Payload: Codable
+public protocol SettingsKey<Payload>: Sendable {
+	associatedtype Payload: Codable & Sendable
 	static var defaultValue: Payload { get }
 	static var name: String { get }
 	

@@ -6,28 +6,34 @@
 //
 
 import Foundation
+import os
 
-nonisolated final class Settings: @unchecked Sendable {
+extension UserDefaults: @retroactive @unchecked Sendable { }
+
+nonisolated final class Settings: Sendable {
 	public static nonisolated let instance = Settings()
 	
 	// UserDefaults is threadsafe, according to the documentation, so we're okay to use it in a nonisolated context
-	var userDefaults: UserDefaults? = UserDefaults.standard
-	
-	@MainActor public func set(userDefaults: UserDefaults) {
-		self.userDefaults = userDefaults
+	private let defaultsLock = OSAllocatedUnfairLock<UserDefaults?>(initialState: .standard)
+
+	public func set(userDefaults: UserDefaults) {
+		defaultsLock.withLock { $0 = userDefaults }
 	}
-	
+
 	nonisolated subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
 		get {
-			if let userDefaults {
-				return key.from(userDefaults: userDefaults)
+			defaultsLock.withLock { userDefaults in
+				if let userDefaults {
+					return key.from(userDefaults: userDefaults)
+				}
+				return nil
 			}
-			
-			return nil
 		}
 		set {
-			if let userDefaults {
-				return key.set(newValue, in: userDefaults)
+			defaultsLock.withLock { userDefaults in
+				if let userDefaults {
+					key.set(newValue, in: userDefaults)
+				}
 			}
 		}
 	}
