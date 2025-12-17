@@ -23,21 +23,31 @@ rm -rf .build
 
 ## Testing Commands
 
-Note: This package currently has no test target defined in Package.swift. Tests would need to be added to the package manifest first.
+The package includes a comprehensive test suite using Swift Testing framework.
 
 ```bash
-# Run all tests (when tests are added)
+# Run all tests
 swift test
 
 # Run with verbose output
 swift test --verbose
 
-# Run specific test by filter
-swift test --filter <test-target>.<test-case>
+# Run with thread sanitizer (recommended for concurrency testing)
+swift test -Xswiftc -sanitize=thread
 
-# Skip specific tests
-swift test --skip <pattern>
+# Build and test
+swift build && swift test
 ```
+
+**Test Coverage:**
+- 74 tests across 5 test suites
+- Basic settings functionality
+- Type-specific tests (all supported types)
+- Thread safety and concurrent access
+- Edge cases and error conditions
+- SwiftUI integration (property wrappers, bindings, ObservedSettings)
+
+All tests use instance-based `Settings` and `ObservedSettings` for complete isolation.
 
 ## Architecture
 
@@ -52,20 +62,22 @@ The framework uses a **layered protocol-oriented architecture** with four distin
    - Protocol extensions in `Settings+UserDefaults.swift` provide type-specific implementations
 
 2. **Settings Class** (Storage Layer)
-   - Singleton (`Settings.instance`) managing UserDefaults access
-   - Thread-safe with `@unchecked Sendable` conformance
-   - Generic subscript `subscript<Key: SettingsKey>(_: Key.Type) -> Key.Payload`
-   - Supports custom UserDefaults instances for app groups
+   - Singleton (`Settings.instance`) for global access or instance-based (`Settings(defaults:)`) for isolation
+   - Thread-safe using `OSAllocatedUnfairLock<UserDefaults?>` (properly Sendable)
+   - Generic subscript `subscript<Key: SettingsKey>(_: Key.Type) -> Key.Payload?`
+   - Supports custom UserDefaults instances via `init(defaults: UserDefaults)`
+   - Can swap UserDefaults at runtime with `set(userDefaults:)` method
 
 3. **ObservedSettings Class** (Observation Layer)
    - `@Observable` wrapper around Settings for SwiftUI reactivity
-   - MainActor-isolated singleton (`ObservedSettings.instance`)
+   - MainActor-isolated singleton (`ObservedSettings.instance`) or instance-based (`ObservedSettings(settings:)`)
    - Provides observation hooks (`access`/`withMutation`) for Swift's observation system
    - Separate from Settings to allow non-UI usage without observation overhead
 
 4. **@Setting Property Wrapper** (SwiftUI Integration Layer)
    - Convenient property wrapper conforming to `DynamicProperty`
    - Provides `wrappedValue` for direct access and `projectedValue` for SwiftUI Bindings
+   - Can use global instance `Setting(Key.self)` or custom `Setting(Key.self, settings: observed)`
    - MainActor-isolated for UI safety
 
 ### Type Specialization Strategy
@@ -80,10 +92,14 @@ This prevents unnecessary encoding overhead for simple types while supporting ar
 
 ### Concurrency Model
 
-- **Settings**: Nonisolated access, `@unchecked Sendable` (UserDefaults is thread-safe)
-- **ObservedSettings**: MainActor-isolated for UI observation
-- **@Setting wrapper**: MainActor-isolated as a DynamicProperty
-- Designed for Swift 6 strict concurrency checking
+- **Settings**: `nonisolated final class` with proper `Sendable` conformance (no `@unchecked`)
+  - Uses `OSAllocatedUnfairLock<UserDefaults?>` for thread-safe access
+  - UserDefaults is retroactively marked as `@unchecked Sendable` (documented as thread-safe by Apple)
+- **ObservedSettings**: `@MainActor @Observable` for UI observation
+- **@Setting wrapper**: `@MainActor` isolated as a `DynamicProperty`
+- **SettingsKey protocol**: Requires `Sendable` conformance with `Payload: Codable & Sendable`
+- Fully compatible with Swift 6 strict concurrency checking
+- All concurrent access is protected by the lock in Settings
 
 ## Key Implementation Notes
 
@@ -107,23 +123,65 @@ The protocol extension in `Settings+UserDefaults.swift` automatically handles Co
 Both Settings and ObservedSettings accept custom UserDefaults instances:
 
 ```swift
+// App groups
 let groupDefaults = UserDefaults(suiteName: "group.com.example.app")!
-let settings = Settings(userDefaults: groupDefaults)
+let settings = Settings(defaults: groupDefaults)
+
+// Testing with isolated instance
+let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+let settings = Settings(defaults: testDefaults)
 ```
 
-### SwiftUI Usage Pattern
+### SwiftUI Usage Patterns
 
 ```swift
+// Using global singleton (most common)
 @Setting(MyCustomSetting.self) var mySetting
 // Direct access: mySetting
 // Binding: $mySetting
+
+// Using custom instance (for testing or isolation)
+let settings = Settings(defaults: customDefaults)
+let observed = ObservedSettings(settings: settings)
+let wrapper = Setting(MyCustomSetting.self, settings: observed)
 ```
+
+### Testing Pattern
+
+Tests use isolated instances to avoid shared state:
+
+```swift
+@Test("My test")
+func myTest() {
+    let testDefaults = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+    defer { testDefaults.removePersistentDomain(forName: suiteName) }
+
+    let settings = Settings(defaults: testDefaults)
+    settings[MyKey.self] = "value"
+
+    #expect(settings[MyKey.self] == "value")
+}
+```
+
+This pattern ensures:
+- Complete test isolation (no shared state)
+- Tests can run in parallel
+- No cleanup of global singleton required
 
 ## File Organization
 
-- `SettingsKey.swift` - Protocol definition
-- `Settings.swift` - Core storage logic
-- `Settings+UserDefaults.swift` - Type-specific implementations
-- `ObservedSettings.swift` - SwiftUI observation wrapper
-- `SettingsWrapper.swift` - @Setting property wrapper
-- `OptionalBox.swift` - Optional type helper protocol
+### Sources/SharedSettings/
+- `SettingsKey.swift` - Protocol definition with default `name` implementation
+- `SettingsKey+UserDefaults.swift` - Type-specific implementations for all supported types
+- `Settings.swift` - Core storage logic with thread-safe lock
+- `ObservedSettings.swift` - SwiftUI observation wrapper (`@Observable`)
+- `SettingsWrapper.swift` - `@Setting` property wrapper for SwiftUI
+
+### Tests/SharedSettingsTests/
+- `BasicSettingsTests.swift` - Core CRUD operations (8 tests)
+- `TypeSpecificTests.swift` - All supported types: String, Bool, Int, Double, URL, Data, Date, Arrays, Enums, Codable (30 tests)
+- `ThreadSafetyTests.swift` - Concurrent access, data races, lock verification (7 tests)
+- `EdgeCaseTests.swift` - Error handling, corrupt data, nil vs default values (16 tests)
+- `SwiftUIIntegrationTests.swift` - Property wrappers, bindings, ObservedSettings, MainActor isolation (13 tests)
+
+All test files use Swift Testing framework with `@Suite`, `@Test`, and `#expect` macros.
