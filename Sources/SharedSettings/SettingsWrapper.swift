@@ -10,10 +10,16 @@ import SwiftUI
 @propertyWrapper @MainActor public struct Setting<Key: SettingsKey>: DynamicProperty {
 	public init(_ key: Key.Type) {
 		self.key = key
+		self.settings = ObservedSettings.instance
+	}
+	
+	internal init(_ key: Key.Type, settings: ObservedSettings) {
+		self.key = key
+		self.settings = settings
 	}
 	
 	let key: Key.Type
-	var settings = ObservedSettings.instance
+	let settings: ObservedSettings
 	
 	public var wrappedValue: Key.Payload {
 		get {

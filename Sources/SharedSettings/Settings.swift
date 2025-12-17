@@ -13,8 +13,16 @@ extension UserDefaults: @retroactive @unchecked Sendable { }
 nonisolated final class Settings: Sendable {
 	public static nonisolated let instance = Settings()
 	
+	internal init(defaults: UserDefaults) {
+		defaultsLock = .init(initialState: defaults)
+	}
+	
+	internal init() {
+		defaultsLock = .init(initialState: .standard)
+	}
+	
 	// UserDefaults is threadsafe, according to the documentation, so we're okay to use it in a nonisolated context
-	private let defaultsLock = OSAllocatedUnfairLock<UserDefaults?>(initialState: .standard)
+	private let defaultsLock: OSAllocatedUnfairLock<UserDefaults?>
 
 	public func set(userDefaults: UserDefaults) {
 		defaultsLock.withLock { $0 = userDefaults }

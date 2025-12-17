@@ -10,7 +10,11 @@ import SwiftUI
 @Observable @MainActor public class ObservedSettings {
 	public static let instance = ObservedSettings()
 	
-	var settings: Settings { Settings.instance }
+	internal init(settings: Settings = Settings.instance) {
+		self.settings = settings
+	}
+
+	let settings: Settings
 		
 	public subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
 		get {
