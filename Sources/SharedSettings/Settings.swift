@@ -30,18 +30,30 @@ nonisolated final class Settings: Sendable {
 
 	nonisolated subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
 		get {
-			defaultsLock.withLock { userDefaults in
-				if let userDefaults {
-					return key.from(userDefaults: userDefaults)
+			switch key.location {
+			case .userDefaults:
+				return defaultsLock.withLock { userDefaults in
+					if let userDefaults {
+						return key.from(userDefaults: userDefaults)
+					}
+					return nil
 				}
-				return nil
+				
+			case .cloudKit:
+				return key.fromCloudKit()
 			}
 		}
 		set {
-			defaultsLock.withLock { userDefaults in
-				if let userDefaults {
-					key.set(newValue, in: userDefaults)
+			switch key.location {
+			case .userDefaults:
+				defaultsLock.withLock { userDefaults in
+					if let userDefaults {
+						key.set(newValue, in: userDefaults)
+					}
 				}
+				
+			case .cloudKit:
+				key.setInCloudKit(newValue)
 			}
 		}
 	}

@@ -15,6 +15,15 @@ import SwiftUI
 	}
 
 	let settings: Settings
+	
+	public func binding<Key: SettingsKey>(_ key: Key.Type) -> Binding<Key.Payload?> {
+		Binding {
+			self[key]
+		} set: { newValue in
+			self[key] = newValue
+		}
+
+	}
 		
 	public subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
 		get {
