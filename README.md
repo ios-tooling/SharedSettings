@@ -8,6 +8,7 @@ A type-safe, thread-safe, and SwiftUI-friendly wrapper around `UserDefaults` for
 - ✅ **Thread-safe** - Built with Swift 6 concurrency in mind
 - ✅ **SwiftUI Integration** - Property wrappers and `@Observable` support
 - ✅ **Flexible** - Supports all `UserDefaults` types plus `Codable` types
+- ✅ **CloudKit Support** - Store settings in iCloud with `NSUbiquitousKeyValueStore`
 - ✅ **Lightweight** - Minimal overhead over raw `UserDefaults`
 - ✅ **Testable** - Instance-based design for easy testing
 - ✅ **No Dependencies** - Pure Swift with no external dependencies
@@ -144,6 +145,96 @@ struct MySettingKey: SettingsKey {
 }
 ```
 
+## CloudKit Storage
+
+SharedSettings supports storing settings in iCloud using `NSUbiquitousKeyValueStore`. This enables automatic syncing across a user's devices.
+
+### Basic CloudKit Usage
+
+To use CloudKit storage, set the `location` property to `.cloudKit`:
+
+```swift
+struct CloudSyncedThemeKey: SettingsKey {
+    static let defaultValue = "light"
+    static let location: SettingsLocation = .cloudKit  // Syncs via iCloud
+}
+
+// Use it exactly like UserDefaults-backed settings
+Settings.instance[CloudSyncedThemeKey.self] = "dark"
+let theme = Settings.instance[CloudSyncedThemeKey.self]
+```
+
+### Mixed Storage
+
+You can use both UserDefaults and CloudKit storage in the same app:
+
+```swift
+// Local-only setting (not synced)
+struct LocalCachePathKey: SettingsKey {
+    static let defaultValue = ""
+    static let location: SettingsLocation = .userDefaults  // Default
+}
+
+// Cloud-synced setting
+struct UserPreferredLanguageKey: SettingsKey {
+    static let defaultValue = "en"
+    static let location: SettingsLocation = .cloudKit  // Syncs across devices
+}
+
+Settings.instance[LocalCachePathKey.self] = "/tmp/cache"  // Local only
+Settings.instance[UserPreferredLanguageKey.self] = "es"   // Syncs to iCloud
+```
+
+### CloudKit Setup Requirements
+
+To use CloudKit storage in your app:
+
+1. **Enable iCloud capability** in your Xcode project
+2. **Enable Key-Value Storage** in the iCloud settings
+3. **Add CloudKit entitlements** to your app
+
+```xml
+<!-- Info.plist or entitlements -->
+<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+<string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
+```
+
+### Supported CloudKit Types
+
+CloudKit storage supports the same types as UserDefaults:
+
+- Primitives: `String`, `Bool`, `Int`, `Double`, `URL`, `Data`, `Date`, `[String]`
+- String and Int-backed enums (via `RawRepresentable`)
+- Any `Codable` type (JSON-encoded)
+
+### CloudKit Limitations
+
+Be aware of CloudKit's limits:
+
+- **1 MB total storage** per app
+- **1024 keys maximum**
+- **1 KB per value** (except `Data` and arrays)
+- Best for small user preferences, not large datasets
+
+### SwiftUI with CloudKit
+
+CloudKit-backed settings work seamlessly with SwiftUI:
+
+```swift
+struct SettingsView: View {
+    @Setting(CloudSyncedThemeKey.self) var theme  // Syncs via iCloud
+
+    var body: some View {
+        Picker("Theme", selection: $theme) {
+            Text("Light").tag("light")
+            Text("Dark").tag("dark")
+        }
+    }
+}
+```
+
+Changes made on one device will automatically sync to other devices signed into the same iCloud account.
+
 ## Advanced Usage
 
 ### Direct UserDefaults Access
@@ -213,14 +304,23 @@ public protocol SettingsKey<Payload>: Sendable {
     /// The default value returned when the key doesn't exist
     static var defaultValue: Payload { get }
 
-    /// The UserDefaults key name (defaults to type name)
+    /// The storage key name (defaults to type name)
     static var name: String { get }
+
+    /// The storage location (defaults to .userDefaults)
+    static var location: SettingsLocation { get }
 
     /// Read the value from UserDefaults
     nonisolated static func from(userDefaults: UserDefaults) -> Payload?
 
     /// Write the value to UserDefaults
     nonisolated static func set(_ value: Payload?, in userDefaults: UserDefaults)
+
+    /// Read the value from CloudKit
+    nonisolated static func fromCloudKit() -> Payload?
+
+    /// Write the value to CloudKit
+    nonisolated static func setInCloudKit(_ value: Payload?)
 }
 ```
 
@@ -304,9 +404,11 @@ Settings.instance[AppSettings.Display.FontSize.self] = 16
 
 ## Requirements
 
-- iOS 14.0+ / macOS 11.0+ / tvOS 14.0+ / watchOS 7.0+
+- iOS 17.0+ / macOS 14.0+ / tvOS 17.0+ / watchOS 10.0+
 - Swift 6.0+
 - Xcode 16.0+
+
+**Note:** CloudKit features require the same minimum versions and iCloud entitlements.
 
 ## License
 
