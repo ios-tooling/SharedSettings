@@ -10,11 +10,11 @@ import SwiftUI
 @Observable @MainActor public class ObservedSettings {
 	public static let instance = ObservedSettings()
 	
-	internal init(settings: Settings = Settings.instance) {
+	internal init(settings: SharedSettings = SharedSettings.instance) {
 		self.settings = settings
 	}
 
-	let settings: Settings
+	let settings: SharedSettings
 	
 	public func binding<Key: SettingsKey>(_ key: Key.Type) -> Binding<Key.Payload?> {
 		Binding {

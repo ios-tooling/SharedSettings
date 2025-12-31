@@ -1,6 +1,5 @@
 //
-//  Settings.swift
-//  SettingsTest
+//  SharedSettings.swift
 //
 //  Created by Ben Gottlieb on 12/15/25.
 //
@@ -10,8 +9,8 @@ import os
 
 extension UserDefaults: @retroactive @unchecked Sendable { }
 
-nonisolated final class Settings: Sendable {
-	public static nonisolated let instance = Settings()
+nonisolated public final class SharedSettings: Sendable {
+	public static nonisolated let instance = SharedSettings()
 	
 	internal init(defaults: UserDefaults) {
 		defaultsLock = .init(initialState: defaults)
@@ -26,6 +25,11 @@ nonisolated final class Settings: Sendable {
 
 	public func set(userDefaults: UserDefaults) {
 		defaultsLock.withLock { $0 = userDefaults }
+	}
+	
+	public nonisolated static subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
+		get { instance[key] }
+		set { instance[key] = newValue }
 	}
 
 	nonisolated subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
