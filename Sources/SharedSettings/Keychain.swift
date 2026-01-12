@@ -12,7 +12,17 @@ import Combine
 extension CFString: @retroactive @unchecked Sendable { }
 
 struct Keychain {
-	enum KeychainError: Error { case systemError(Int), badlyFormattedDate, badlyFormattedURL }
+	enum KeychainError: Error, LocalizedError {
+		case systemError(Int), badlyFormattedDate, badlyFormattedURL
+		
+		var errorDescription: String? {
+			switch self {
+			case .systemError(let code): return "Keychain error with code \(code)"
+			case .badlyFormattedDate: return "Value in keychain was not a valid Date"
+			case .badlyFormattedURL: return "Value in keychain was not a valid URL"
+			}
+		}
+	}
 	
 	nonisolated static func set(_ value: String?, forKey key: String, withAccess access: AccessOptions? = nil) throws { try set(value?.data(using: String.Encoding.utf8), forKey: key, withAccess: access) }
 	nonisolated static func set(_ value: Double, forKey key: String, withAccess access: AccessOptions? = nil) throws { try set("\(value)", forKey: key, withAccess: access) }
@@ -118,7 +128,11 @@ struct Keychain {
 			SecItemCopyMatching(query as CFDictionary, UnsafeMutablePointer($0))
 		}
 		
-		if errCode != noErr { throw KeychainError.systemError(Int(errCode))  }
+		switch errCode {
+		case noErr: break
+		case -34018, -25300: return nil
+		default: throw KeychainError.systemError(Int(errCode))
+		}
 		
 		return result as? Data
 	}
@@ -138,7 +152,7 @@ struct Keychain {
 		
 		switch errCode {
 		case noErr: break
-		case -34018: break			// errSecMissingEntitlement, we tried to delete something that wasn't there. NBD.
+		case -34018, -25300: break			// errSecMissingEntitlement, we tried to delete something that wasn't there. NBD.
 		default: throw KeychainError.systemError(Int(errCode))
 		}
 	}

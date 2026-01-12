@@ -33,7 +33,7 @@ import SwiftUI
 		
 		set {
 			withMutation(keyPath: \.self) {
-				settings[key] = newValue
+				settings.set(newValue, forKey: key)
 			}
 		}
 	}

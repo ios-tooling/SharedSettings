@@ -27,44 +27,48 @@ nonisolated public final class SharedSettings: Sendable {
 		defaultsLock.withLock { $0 = userDefaults }
 	}
 	
-	public nonisolated static subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
+	public nonisolated static subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload {
 		get { instance[key] }
 		set { instance[key] = newValue }
 	}
 
-	nonisolated subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
+	nonisolated subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload  {
 		get {
 			switch key.location {
 			case .userDefaults:
 				return defaultsLock.withLock { userDefaults in
 					if let userDefaults {
-						return key.from(userDefaults: userDefaults)
+						return key.from(userDefaults: userDefaults) ?? key.defaultValue
 					}
-					return nil
+					return key.defaultValue
 				}
 				
 			case .cloudKit:
-				return key.fromCloudKit()
+				return key.fromCloudKit() ?? key.defaultValue
 				
 			case .keychain:
-				return key.fromKeychain()
+				return key.fromKeychain() ?? key.defaultValue
 			}
 		}
 		set {
-			switch key.location {
-			case .userDefaults:
-				defaultsLock.withLock { userDefaults in
-					if let userDefaults {
-						key.set(newValue, in: userDefaults)
-					}
+			set(newValue, forKey: key)
+		}
+	}
+	
+	func set<Key: SettingsKey>(_ value: Key.Payload?, forKey key: Key.Type) {
+		switch key.location {
+		case .userDefaults:
+			defaultsLock.withLock { userDefaults in
+				if let userDefaults {
+					key.set(value, in: userDefaults)
 				}
-				
-			case .cloudKit:
-				key.setInCloudKit(newValue)
-				
-			case .keychain:
-				key.setInKeychain(newValue)
 			}
+			
+		case .cloudKit:
+			key.setInCloudKit(value)
+			
+		case .keychain:
+			key.setInKeychain(value)
 		}
 	}
 	
