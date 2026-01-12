@@ -45,6 +45,9 @@ nonisolated public final class SharedSettings: Sendable {
 				
 			case .cloudKit:
 				return key.fromCloudKit()
+				
+			case .keychain:
+				return key.fromKeychain()
 			}
 		}
 		set {
@@ -58,6 +61,9 @@ nonisolated public final class SharedSettings: Sendable {
 				
 			case .cloudKit:
 				key.setInCloudKit(newValue)
+				
+			case .keychain:
+				key.setInKeychain(newValue)
 			}
 		}
 	}
