@@ -43,7 +43,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 		settings[StringSetting.self] = "test value"
 
@@ -57,7 +57,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		let wrapper = Setting(StringSetting.self, settings: observed)
@@ -71,7 +71,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		let wrapper = Setting(StringSetting.self, settings: observed)
@@ -84,7 +84,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 		settings[StringSetting.self] = "initial"
 
@@ -103,7 +103,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		let stringWrapper = Setting(StringSetting.self, settings: observed)
@@ -126,7 +126,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 		settings[StringSetting.self] = "observed"
 
@@ -140,7 +140,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		observed[StringSetting.self] = "new value"
@@ -153,7 +153,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		let value = observed[StringSetting.self]
@@ -168,7 +168,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		let wrapper = Setting(StringSetting.self, settings: observed)
@@ -186,7 +186,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		let wrapper1 = Setting(IntSetting.self, settings: observed)
@@ -206,8 +206,8 @@ struct SwiftUIIntegrationTests {
 		let customDefaults = UserDefaults(suiteName: customSuite)!
 		defer { customDefaults.removePersistentDomain(forName: customSuite) }
 
-		let settings1 = Settings(defaults: customDefaults)
-		let settings2 = Settings(defaults: testDefaults)
+		let settings1 = SharedSettings(defaults: customDefaults)
+		let settings2 = SharedSettings(defaults: testDefaults)
 		let observed1 = ObservedSettings(settings: settings1)
 
 		let wrapper = Setting(StringSetting.self, settings: observed1)
@@ -222,7 +222,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		// This test documents that ObservedSettings uses \.self for observation
@@ -239,7 +239,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		await MainActor.run {
@@ -254,7 +254,7 @@ struct SwiftUIIntegrationTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		let observed = ObservedSettings(settings: settings)
 
 		await MainActor.run {

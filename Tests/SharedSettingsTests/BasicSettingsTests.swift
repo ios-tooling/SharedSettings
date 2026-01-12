@@ -92,7 +92,7 @@ struct BasicSettingsTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 
 		settings[StringSetting.self] = "subscript test"
 		let retrieved = settings[StringSetting.self]
@@ -140,7 +140,7 @@ struct BasicSettingsTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 
 		settings[StringSetting.self] = "string"
 		settings[IntSetting.self] = 999

@@ -364,7 +364,7 @@ public struct Setting<Key: SettingsKey>: DynamicProperty {
 3. **Group related settings** - Use nested structs or enums to organize keys
 4. **Provide sensible defaults** - Always set a reasonable `defaultValue`
 5. **Use the singleton for app settings** - `Settings.instance` for global app state
-6. **Create instances for testing** - Use `Settings(defaults:)` in tests for isolation
+6. **Create instances for testing** - Use `SharedSettings(defaults:)` in tests for isolation
 7. **Leverage property wrappers in SwiftUI** - Use `@Setting` for automatic view updates
 
 ## Example: Organizing Settings

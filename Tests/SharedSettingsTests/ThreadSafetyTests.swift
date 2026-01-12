@@ -37,7 +37,7 @@ struct ThreadSafetyTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		settings[StringKey.self] = "test value"
 
 		await withTaskGroup(of: Void.self) { group in
@@ -55,7 +55,7 @@ struct ThreadSafetyTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 
 		await withTaskGroup(of: Void.self) { group in
 			for i in 0..<1000 {
@@ -75,7 +75,7 @@ struct ThreadSafetyTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 		settings[CounterKey.self] = 0
 
 		await withTaskGroup(of: Void.self) { group in
@@ -106,7 +106,7 @@ struct ThreadSafetyTests {
 			defaults2.removePersistentDomain(forName: suite2)
 		}
 
-		let settings = Settings(defaults: defaults1)
+		let settings = SharedSettings(defaults: defaults1)
 		settings[StringKey.self] = "defaults1"
 		StringKey.set("defaults2", in: defaults2)
 
@@ -136,7 +136,7 @@ struct ThreadSafetyTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 
 		await withTaskGroup(of: Void.self) { group in
 			for i in 0..<1000 {
@@ -169,7 +169,7 @@ struct ThreadSafetyTests {
 			typealias Payload = Bool
 		}
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 
 		await withTaskGroup(of: Void.self) { group in
 			for i in 0..<2000 {
@@ -200,7 +200,7 @@ struct ThreadSafetyTests {
 		let (testDefaults, suiteName) = createTestDefaults()
 		defer { testDefaults.removePersistentDomain(forName: suiteName) }
 
-		let settings = Settings(defaults: testDefaults)
+		let settings = SharedSettings(defaults: testDefaults)
 
 		// Run with Thread Sanitizer: swift test -Xswiftc -sanitize=thread
 		await withTaskGroup(of: Void.self) { group in

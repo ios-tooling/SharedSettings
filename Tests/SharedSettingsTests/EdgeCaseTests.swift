@@ -157,8 +157,8 @@ struct EdgeCaseTests {
 
 	@Test("Multiple settings instances are same")
 	func multipleSettingsInstances() {
-		let instance1 = Settings.instance
-		let instance2 = Settings.instance
+		let instance1 = SharedSettings.instance
+		let instance2 = SharedSettings.instance
 
 		#expect(instance1 === instance2)
 	}
