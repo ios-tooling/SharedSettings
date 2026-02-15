@@ -28,3 +28,7 @@ extension SettingsKey {
 public extension SettingsKey {
 	static var location: SettingsLocation { .userDefaults }
 }
+
+public extension SettingsKey {
+	static var sharedValue: Payload { SharedSettings[Self.self] }
+}
