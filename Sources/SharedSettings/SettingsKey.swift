@@ -30,5 +30,8 @@ public extension SettingsKey {
 }
 
 public extension SettingsKey {
-	static var sharedValue: Payload { SharedSettings[Self.self] }
+	static nonisolated var sharedValue: Payload {
+		get { SharedSettings[Self.self] }
+		set { SharedSettings[Self.self] = newValue }
+	}
 }
