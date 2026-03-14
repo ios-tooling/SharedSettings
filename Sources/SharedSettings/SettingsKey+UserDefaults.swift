@@ -22,7 +22,9 @@ extension SettingsKey where Payload == Bool {
 		if userDefaults.object(forKey: name) == nil { return nil }
 		return userDefaults.bool(forKey: name)
 	}
-	public static func set(_ value: Payload?, in userDefaults: UserDefaults) { userDefaults.set(value, forKey: name) }
+	public static func set(_ value: Payload?, in userDefaults: UserDefaults) {
+		if let value { userDefaults.set(value, forKey: name) } else { userDefaults.removeObject(forKey: name) }
+	}
 }
 
 extension SettingsKey where Payload == URL {
@@ -50,7 +52,9 @@ extension SettingsKey where Payload == Int {
 		if userDefaults.object(forKey: name) == nil { return nil }
 		return userDefaults.integer(forKey: name)
 	}
-	public static func set(_ value: Payload?, in userDefaults: UserDefaults) { userDefaults.set(value, forKey: name) }
+	public static func set(_ value: Payload?, in userDefaults: UserDefaults) {
+		if let value { userDefaults.set(value, forKey: name) } else { userDefaults.removeObject(forKey: name) }
+	}
 }
 
 extension SettingsKey where Payload: RawRepresentable, Payload.RawValue == String, Payload: Codable {
@@ -75,7 +79,9 @@ extension SettingsKey where Payload == Double {
 		if userDefaults.object(forKey: name) == nil { return nil }
 		return userDefaults.double(forKey: name)
 	}
-	public static func set(_ value: Payload?, in userDefaults: UserDefaults) { userDefaults.set(value, forKey: name) }
+	public static func set(_ value: Payload?, in userDefaults: UserDefaults) {
+		if let value { userDefaults.set(value, forKey: name) } else { userDefaults.removeObject(forKey: name) }
+	}
 }
 
 extension SettingsKey where Payload: Codable {
