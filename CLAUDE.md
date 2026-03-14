@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SharedSettings is a Swift Package Manager (SPM) library that provides a type-safe, protocol-oriented wrapper around UserDefaults, CloudKit (NSUbiquitousKeyValueStore), and Keychain for SwiftUI applications. It leverages Swift 6.1+ features including the `@Observable` macro and strict concurrency checking.
 
-**Platforms:** macOS 14+, iOS 17+, watchOS 10+
+**Platforms:** macOS 14+, iOS 17+, tvOS 17+, visionOS 1+, watchOS 10+
 
 ## Build Commands
 
