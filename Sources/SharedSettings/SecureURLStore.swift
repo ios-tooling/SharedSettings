@@ -9,6 +9,7 @@
 
 import Foundation
 
+#if os(macOS)
 public struct SecureURLStore: Sendable {
 	public static let shared = SecureURLStore()
 
@@ -85,3 +86,4 @@ public extension SecureURLStore {
 	/// Shortcut for `SecureURLStore.shared.remove(url)`.
 	static func remove(_ url: URL) { shared.remove(url) }
 }
+#endif
