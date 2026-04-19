@@ -215,6 +215,27 @@ All types supported by UserDefaults and CloudKit are also supported in Keychain:
 
 Keychain-backed settings work seamlessly with all SwiftUI property wrappers and ObservedSettings.
 
+### SecureURLStore
+
+`SecureURLStore` (in `SecureURLStore.swift`) is a sibling type to `SharedSettings` that persists **security-scoped bookmarks** — not a `SettingsKey` store, and not routed through `SharedSettings.instance`. It exists because every sandboxed macOS / iOS 16+ app reimplements the same `bookmarkData` ↔ `URL(resolvingBookmarkData:)` dance against a `[String: Data]` map keyed by path.
+
+```swift
+SecureURLStore.save(url)         // static shortcut → shared.save(url)
+SecureURLStore.resolve(url)      // -> URL? (nil if no bookmark)
+SecureURLStore.remove(url)
+SecureURLStore.shared            // default instance, UserDefaults.standard
+SecureURLStore(userDefaults:defaultsKey:)  // custom for App Groups / tests
+```
+
+Implementation notes:
+
+- Stored as `[String: Data]` under `com.sharedsettings.secure-urls` by default (configurable via init).
+- `save` is intentionally tolerant of URLs without scope aura — `bookmarkData(options: .withSecurityScope)` throws and the error is `try?`-swallowed. The method never throws.
+- `resolve` handles `isStale` by re-saving in place.
+- `SecureURLStore` never calls `startAccessingSecurityScopedResource` / `stopAccessing…` — scope-session lifecycle is the caller's concern. The store only handles persistence.
+
+This type is deliberately not a `SettingsKey` because it's a single keyed-by-path map rather than a named typed setting, and because the payload (`Data`) has semantics (bookmarks refresh themselves when stale) that don't fit the key-based read/write model.
+
 ### SwiftUI Usage Patterns
 
 ```swift
@@ -261,6 +282,7 @@ This pattern ensures:
 - `SharedSettings.swift` - Core storage logic with thread-safe lock and routing to UserDefaults/CloudKit/Keychain
 - `ObservedSettings.swift` - SwiftUI observation wrapper (`@Observable`)
 - `SettingsWrapper.swift` - `@Setting` property wrapper for SwiftUI
+- `SecureURLStore.swift` - Standalone helper for persisting security-scoped URL bookmarks (not a SettingsKey backend)
 
 ### Tests/SharedSettingsTests/
 - `BasicSettingsTests.swift` - Core CRUD operations (8 tests)

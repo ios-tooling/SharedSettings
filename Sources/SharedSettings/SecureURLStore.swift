@@ -1,5 +1,5 @@
 //
-//  BookmarkStore.swift
+//  SecureURLStore.swift
 //  SharedSettings
 //
 //  Persists security-scoped bookmarks so sandboxed file access can be
@@ -9,18 +9,18 @@
 
 import Foundation
 
-public struct BookmarkStore: Sendable {
-	public static let shared = BookmarkStore()
+public struct SecureURLStore: Sendable {
+	public static let shared = SecureURLStore()
 
 	public let userDefaults: UserDefaults
 	public let defaultsKey: String
 
-	/// Create a bookmark store. `defaultsKey` is the UserDefaults key under
-	/// which the `[String: Data]` map is stored; callers that want to segregate
+	/// Create a store. `defaultsKey` is the UserDefaults key under which the
+	/// `[String: Data]` bookmark map is stored; callers that want to segregate
 	/// bookmarks per-app or per-purpose should pass a distinct value.
 	public init(
 		userDefaults: UserDefaults = .standard,
-		defaultsKey: String = "com.sharedsettings.bookmarks"
+		defaultsKey: String = "com.sharedsettings.secure-urls"
 	) {
 		self.userDefaults = userDefaults
 		self.defaultsKey = defaultsKey
@@ -75,13 +75,13 @@ public struct BookmarkStore: Sendable {
 	}
 }
 
-public extension BookmarkStore {
-	/// Shortcut for `BookmarkStore.shared.save(url)`.
+public extension SecureURLStore {
+	/// Shortcut for `SecureURLStore.shared.save(url)`.
 	static func save(_ url: URL) { shared.save(url) }
 
-	/// Shortcut for `BookmarkStore.shared.resolve(url)`.
+	/// Shortcut for `SecureURLStore.shared.resolve(url)`.
 	static func resolve(_ url: URL) -> URL? { shared.resolve(url) }
 
-	/// Shortcut for `BookmarkStore.shared.remove(url)`.
+	/// Shortcut for `SecureURLStore.shared.remove(url)`.
 	static func remove(_ url: URL) { shared.remove(url) }
 }

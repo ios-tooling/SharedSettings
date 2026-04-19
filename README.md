@@ -355,6 +355,45 @@ This pattern gives full isolation, supports parallel test execution, and require
 
 ---
 
+## SecureURLStore
+
+`SecureURLStore` is a small companion type for persisting **security-scoped bookmarks** — the pattern sandboxed macOS (and iOS 16+) apps use to re-access files the user picked in a previous session. It sits alongside the `SettingsKey` / `SharedSettings` API rather than going through it, because bookmark data is a single `[String: Data]` map keyed by path and doesn't need the per-key type system.
+
+```swift
+import SharedSettings
+
+// After an NSOpenPanel / .onOpenURL / drop, while the URL still has scope:
+url.startAccessingSecurityScopedResource()
+SecureURLStore.save(url)
+
+// Next launch, given the path you remembered:
+if let resolved = SecureURLStore.resolve(url) {
+    resolved.startAccessingSecurityScopedResource()
+    // …use resolved for file access
+}
+
+// Clean up when the file is removed from your recents list:
+SecureURLStore.remove(url)
+```
+
+`SecureURLStore.save / resolve / remove` are static shortcuts that forward to `SecureURLStore.shared`, which uses `UserDefaults.standard` under the key `com.sharedsettings.secure-urls`. If you want segregated storage (App Groups, tests, multiple bookmark scopes), build your own instance:
+
+```swift
+let appGroupStore = SecureURLStore(
+    userDefaults: UserDefaults(suiteName: "group.com.example.app")!,
+    defaultsKey: "com.example.app.bookmarks"
+)
+appGroupStore.save(url)
+```
+
+A few behaviors worth knowing:
+
+- `save` silently no-ops if the URL doesn't carry a security-scope aura. `bookmarkData(options: .withSecurityScope)` throws in that case, and the error is swallowed — callers that want to know whether scope was valid should check `url.startAccessingSecurityScopedResource()` separately.
+- `resolve` refreshes stale bookmarks in place. If the file was moved and the OS still has enough info to locate it, the new bookmark is saved under the new path key.
+- The returned URL from `resolve` is ready for `startAccessingSecurityScopedResource()`. That call is **your** responsibility — `SecureURLStore` persists the bookmark but never opens a scope session.
+
+---
+
 ## License
 
 MIT
