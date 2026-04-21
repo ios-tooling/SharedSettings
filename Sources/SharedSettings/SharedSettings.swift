@@ -10,12 +10,16 @@ import os
 extension UserDefaults: @retroactive @unchecked Sendable { }
 
 nonisolated public final class SharedSettings: Sendable {
-	public static nonisolated let instance = SharedSettings()
-	
+	public static nonisolated let instance: SharedSettings = {
+		let settings = SharedSettings()
+		CloudSettingsObserver.start()
+		return settings
+	}()
+
 	internal init(defaults: UserDefaults) {
 		defaultsLock = .init(initialState: defaults)
 	}
-	
+
 	internal init() {
 		defaultsLock = .init(initialState: .standard)
 	}

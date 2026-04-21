@@ -9,9 +9,30 @@ import SwiftUI
 
 @Observable @MainActor public class ObservedSettings {
 	public static let instance = ObservedSettings()
-	
+
 	internal init(settings: SharedSettings = SharedSettings.instance) {
 		self.settings = settings
+		externalChangeToken = NotificationCenter.default.addObserver(
+			forName: SharedSettings.didChangeExternallyNotification,
+			object: nil,
+			queue: nil
+		) { [weak self] _ in
+			Task { @MainActor [weak self] in
+				self?.invalidate()
+			}
+		}
+	}
+
+	deinit {
+		if let token = externalChangeToken {
+			NotificationCenter.default.removeObserver(token)
+		}
+	}
+
+	@ObservationIgnored nonisolated(unsafe) private var externalChangeToken: NSObjectProtocol?
+
+	private func invalidate() {
+		withMutation(keyPath: \.settings) { }
 	}
 
 	let settings: SharedSettings
