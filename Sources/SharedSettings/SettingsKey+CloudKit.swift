@@ -10,7 +10,12 @@ import CloudKit
 
 extension SettingsKey {
 	static func saveCloudKitStore() { cloudKitKeyValueStore.synchronize() }
-	static var cloudKitKeyValueStore: NSUbiquitousKeyValueStore { NSUbiquitousKeyValueStore.default }
+	static var cloudKitKeyValueStore: NSUbiquitousKeyValueStore {
+		// Attach the external-change observer the first time cloud storage is
+		// actually used. Idempotent — backed by a lazy static.
+		CloudSettingsObserver.start()
+		return NSUbiquitousKeyValueStore.default
+	}
 }
 
 extension SettingsKey where Payload == String {

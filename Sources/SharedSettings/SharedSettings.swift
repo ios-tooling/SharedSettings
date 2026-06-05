@@ -10,11 +10,11 @@ import os
 extension UserDefaults: @retroactive @unchecked Sendable { }
 
 nonisolated public final class SharedSettings: Sendable {
-	public static nonisolated let instance: SharedSettings = {
-		let settings = SharedSettings()
-		CloudSettingsObserver.start()
-		return settings
-	}()
+	// The iCloud key-value observer starts lazily on first `.cloudKit` access
+	// (see `SettingsKey.cloudKitKeyValueStore`), so apps that never use a
+	// cloud-backed key don't touch `NSUbiquitousKeyValueStore` — and therefore
+	// don't need the ubiquity-kvstore entitlement or hit its missing-entitlement log.
+	public static nonisolated let instance: SharedSettings = SharedSettings()
 
 	internal init(defaults: UserDefaults) {
 		defaultsLock = .init(initialState: defaults)
