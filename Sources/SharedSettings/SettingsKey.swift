@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum SettingsLocation: Sendable { case userDefaults, cloudKit, keychain }
+public enum SettingsLocation: Sendable { case userDefaults, cloudKit, keychain, memory }
 
 public protocol SettingsKey<Payload>: Sendable {
 	associatedtype Payload: Codable & Sendable

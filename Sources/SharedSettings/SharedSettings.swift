@@ -27,6 +27,10 @@ nonisolated public final class SharedSettings: Sendable {
 	// UserDefaults is threadsafe, according to the documentation, so we're okay to use it in a nonisolated context
 	private let defaultsLock: OSAllocatedUnfairLock<UserDefaults?>
 
+	// Process-lifetime store for `.memory` keys. Payload is Sendable, so we keep
+	// the live typed value — no encode/decode round-trip and no per-type extensions.
+	private let memoryLock = OSAllocatedUnfairLock<[String: any Sendable]>(initialState: [:])
+
 	public func set(userDefaults: UserDefaults) {
 		defaultsLock.withLock { $0 = userDefaults }
 	}
@@ -52,6 +56,9 @@ nonisolated public final class SharedSettings: Sendable {
 				
 			case .keychain:
 				return key.fromKeychain() ?? key.defaultValue
+
+			case .memory:
+				return memoryLock.withLock { ($0[key.name] as? Key.Payload) ?? key.defaultValue }
 			}
 		}
 		set {
@@ -73,7 +80,22 @@ nonisolated public final class SharedSettings: Sendable {
 			
 		case .keychain:
 			key.setInKeychain(value)
+
+		case .memory:
+			memoryLock.withLock { $0[key.name] = value }   // nil clears the slot
+			postMemoryChange(key.name)
 		}
 	}
-	
+
+	// `.memory` has no system store to fire `didChangeExternallyNotification`, so
+	// we post it ourselves. This refreshes `@Setting`/`ObservedSettings`-bound views
+	// even when the write comes from a nonisolated context off the main actor.
+	private func postMemoryChange(_ name: String) {
+		NotificationCenter.default.post(
+			name: SharedSettings.didChangeExternallyNotification,
+			object: nil,
+			userInfo: [SharedSettings.changedKeysUserInfoKey: [name]]
+		)
+	}
+
 }
