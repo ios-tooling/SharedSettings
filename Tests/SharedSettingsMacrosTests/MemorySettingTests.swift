@@ -4,6 +4,7 @@ import Testing
 @MemorySetting(false) struct MemFlag {}
 @MemorySetting(0) struct MemCount {}
 @MemorySetting("idle") struct MemDefault {}
+@MemorySetting(false) public struct PublicMemFlag {}   // public witnesses must compile
 
 // The `.memory` store is a process-global singleton, so each test uses its own
 // dedicated key and the suite is serialized to avoid cross-test interference.

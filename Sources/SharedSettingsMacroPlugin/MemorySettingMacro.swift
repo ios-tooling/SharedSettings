@@ -24,9 +24,13 @@ public struct MemorySettingMacro: MemberMacro, ExtensionMacro {
 			throw MemorySettingError.missingDefault
 		}
 
+		// Propagate the type's access level so a public key gets public witnesses
+		// (an internal witness can't satisfy a public SettingsKey conformance).
+		let access = accessModifier(of: declaration)
+
 		return [
-			"static let defaultValue = \(defaultExpr)",
-			"static let location: SettingsLocation = .memory",
+			"\(raw: access)static let defaultValue = \(defaultExpr)",
+			"\(raw: access)static let location: SettingsLocation = .memory",
 		]
 	}
 
@@ -42,6 +46,18 @@ public struct MemorySettingMacro: MemberMacro, ExtensionMacro {
 		if protocols.isEmpty { return [] }   // type already states the conformance
 		let decl: DeclSyntax = "extension \(type.trimmed): SettingsKey {}"
 		return [decl.cast(ExtensionDeclSyntax.self)]
+	}
+
+	// "public " / "package " for cross-module keys, "" otherwise.
+	private static func accessModifier(of declaration: some DeclGroupSyntax) -> String {
+		for modifier in declaration.modifiers {
+			switch modifier.name.tokenKind {
+			case .keyword(.public):  return "public "
+			case .keyword(.package): return "package "
+			default:                 continue
+			}
+		}
+		return ""
 	}
 }
 
