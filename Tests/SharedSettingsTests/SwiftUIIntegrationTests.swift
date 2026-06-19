@@ -158,7 +158,7 @@ struct SwiftUIIntegrationTests {
 
 		let value = observed[StringSetting.self]
 
-		#expect(value == nil)
+		#expect(value == StringSetting.defaultValue)
 	}
 
 	// MARK: - Integration Tests
@@ -214,7 +214,7 @@ struct SwiftUIIntegrationTests {
 		wrapper.wrappedValue = "custom"
 
 		#expect(settings1[StringSetting.self] == "custom")
-		#expect(settings2[StringSetting.self] == nil)
+		#expect(settings2[StringSetting.self] == StringSetting.defaultValue)
 	}
 
 	@Test("Observation uses global keypath (documents behavior)")

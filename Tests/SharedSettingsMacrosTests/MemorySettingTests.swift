@@ -1,21 +1,23 @@
 import Testing
 @testable import SharedSettingsMacros
 
-@MemorySetting(false) struct IsReady {}
-@MemorySetting(0) struct LaunchCount {}
+@MemorySetting(false) struct MemFlag {}
+@MemorySetting(0) struct MemCount {}
+@MemorySetting("idle") struct MemDefault {}
 
-struct MemorySettingTests {
-	@Test func defaultsToDeclaredValue() {
-		SharedSettings[IsReady.self] = false
-		#expect(SharedSettings[IsReady.self] == false)
-		#expect(IsReady.location == .memory)
+// The `.memory` store is a process-global singleton, so each test uses its own
+// dedicated key and the suite is serialized to avoid cross-test interference.
+@Suite(.serialized) struct MemorySettingTests {
+	@Test func unsetKeyReturnsDeclaredDefault() {
+		#expect(SharedSettings[MemDefault.self] == "idle")
+		#expect(MemDefault.location == .memory)
 	}
 
 	@Test func roundTripsThroughMemory() {
-		SharedSettings[LaunchCount.self] = 7
-		#expect(SharedSettings[LaunchCount.self] == 7)
+		SharedSettings[MemFlag.self] = true
+		#expect(SharedSettings[MemFlag.self] == true)
 
-		SharedSettings[IsReady.self] = true
-		#expect(SharedSettings[IsReady.self] == true)
+		SharedSettings[MemCount.self] = 7
+		#expect(SharedSettings[MemCount.self] == 7)
 	}
 }

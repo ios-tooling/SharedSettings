@@ -9,7 +9,9 @@ import Testing
 import Foundation
 @testable import SharedSettings
 
-@Suite("Keychain Functionality")
+// Keychain is a process-global system store and these tests share a key name,
+// so they must not run in parallel.
+@Suite("Keychain Functionality", .serialized)
 struct KeychainTestsTests {
 	@Test("delete non-existent key")
 	func deleteNonExistentKey() throws {
@@ -31,7 +33,7 @@ struct KeychainTestsTests {
 	func fetchMissingKeychain() throws {
 		struct TestSettingsKey: SettingsKey { static let defaultValue = "default"; static let location = SettingsLocation.keychain }
 		defer { try? Keychain.delete(TestSettingsKey.name) }
-		
-		#expect(SharedSettings[TestSettingsKey.self] == nil)
+
+		#expect(SharedSettings[TestSettingsKey.self] == TestSettingsKey.defaultValue)
 	}
 }

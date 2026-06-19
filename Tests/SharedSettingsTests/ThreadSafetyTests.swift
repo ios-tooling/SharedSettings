@@ -66,8 +66,7 @@ struct ThreadSafetyTests {
 		}
 
 		let finalValue = settings[StringKey.self]
-		#expect(finalValue != nil)
-		#expect(finalValue!.starts(with: "value_"))
+		#expect(finalValue.starts(with: "value_"))
 	}
 
 	@Test("Concurrent read and write")
