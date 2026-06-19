@@ -17,6 +17,7 @@ public struct MemorySettingMacro: MemberMacro, ExtensionMacro {
 	public static func expansion(
 		of node: AttributeSyntax,
 		providingMembersOf declaration: some DeclGroupSyntax,
+		conformingTo protocols: [TypeSyntax],
 		in context: some MacroExpansionContext
 	) throws -> [DeclSyntax] {
 		guard case .argumentList(let args) = node.arguments,
