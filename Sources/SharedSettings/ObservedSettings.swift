@@ -16,10 +16,9 @@ import SwiftUI
 			forName: SharedSettings.didChangeExternallyNotification,
 			object: nil,
 			queue: nil
-		) { [weak self] _ in
-			Task { @MainActor [weak self] in
-				self?.invalidate()
-			}
+		) { [weak self] note in
+			let keys = note.sharedSettingsChangedKeys
+			Task { @MainActor [weak self] in self?.invalidate(keys) }
 		}
 	}
 
@@ -30,34 +29,48 @@ import SwiftUI
 	}
 
 	@ObservationIgnored nonisolated(unsafe) private var externalChangeToken: NSObjectProtocol?
+	@ObservationIgnored private let settings: SharedSettings
 
-	private func invalidate() {
-		withMutation(keyPath: \.settings) { }
+	// One observable token per key name. Swift Observation can only track real keyPaths, not
+	// dynamic string keys, so each key gets its own tiny @Observable token: reading a key tracks
+	// its token, and a change bumps only that token. That gives per-key granularity — a change to
+	// one setting refreshes only the views that read it, not every settings-bound view.
+	@Observable @MainActor final class KeyToken { var version = 0 }
+	@ObservationIgnored private var tokens: [String: KeyToken] = [:]
+
+	private func token(for name: String) -> KeyToken {
+		if let token = tokens[name] { return token }
+		let token = KeyToken()
+		tokens[name] = token
+		return token
 	}
 
-	let settings: SharedSettings
-	
+	// Bump only tokens that exist — a key nobody has read has no observers to refresh. `nil` keys
+	// (a change source that didn't say what changed) conservatively refreshes every observed key.
+	private func invalidate(_ names: [String]?) {
+		if let names {
+			for name in names { tokens[name]?.version &+= 1 }
+		} else {
+			for token in tokens.values { token.version &+= 1 }
+		}
+	}
+
 	public func binding<Key: SettingsKey>(_ key: Key.Type) -> Binding<Key.Payload?> {
 		Binding {
 			self[key]
 		} set: { newValue in
 			self[key] = newValue
 		}
-
 	}
-		
+
 	public subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload? {
 		get {
-			access(keyPath: \.self)
+			_ = token(for: key.name).version   // track this key's token
 			return settings[key]
 		}
-		
 		set {
-			withMutation(keyPath: \.self) {
-				settings.set(newValue, forKey: key)
-			}
+			settings.set(newValue, forKey: key)
+			tokens[key.name]?.version &+= 1    // covers stores that don't post a change notification
 		}
 	}
-
 }
-
