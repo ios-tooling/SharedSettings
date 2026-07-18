@@ -44,13 +44,13 @@ nonisolated public final class SharedSettings: Sendable {
 		get {
 			switch key.location {
 			case .userDefaults:
-				return defaultsLock.withLock { userDefaults in
-					if let userDefaults {
-						return key.from(userDefaults: userDefaults) ?? key.defaultValue
-					}
-					return key.defaultValue
-				}
-				
+				// UserDefaults is itself thread-safe, so the lock only needs to
+				// guard the swappable reference. Snapshot it and do the read
+				// (which may JSON-decode a Codable payload) outside the lock, so
+				// a slow decode never blocks other threads reading settings.
+				guard let userDefaults = defaultsLock.withLock({ $0 }) else { return key.defaultValue }
+				return key.from(userDefaults: userDefaults) ?? key.defaultValue
+
 			case .cloudKit:
 				return key.fromCloudKit() ?? key.defaultValue
 				
@@ -69,12 +69,12 @@ nonisolated public final class SharedSettings: Sendable {
 	func set<Key: SettingsKey>(_ value: Key.Payload?, forKey key: Key.Type) {
 		switch key.location {
 		case .userDefaults:
-			defaultsLock.withLock { userDefaults in
-				if let userDefaults {
-					key.set(value, in: userDefaults)
-				}
+			// See the getter: snapshot the store, then write (which may
+			// JSON-encode) outside the lock.
+			if let userDefaults = defaultsLock.withLock({ $0 }) {
+				key.set(value, in: userDefaults)
 			}
-			
+
 		case .cloudKit:
 			key.setInCloudKit(value)
 			
