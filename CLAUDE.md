@@ -40,12 +40,13 @@ swift build && swift test
 ```
 
 **Test Coverage:**
-- 74 tests across 5 test suites
+- 98 tests across 9 test suites
 - Basic settings functionality
 - Type-specific tests (all supported types)
 - Thread safety and concurrent access
 - Edge cases and error conditions
 - SwiftUI integration (property wrappers, bindings, ObservedSettings)
+- Settings kinds and the namespace macros
 
 All tests use instance-based `Settings` and `ObservedSettings` for complete isolation.
 
@@ -136,6 +137,28 @@ struct APITokenKey: SettingsKey {
 ```
 
 The protocol extensions in `SettingsKey+UserDefaults.swift`, `SettingsKey+CloudKit.swift`, and `SettingsKey+Keychain.swift` automatically handle all Codable types. Specialized extensions exist for primitives, RawRepresentable enums, and common types for optimal performance.
+
+### Settings Kinds
+
+`SettingsKind` (`.user` / `.developer` / `.buildTime`) is an axis **orthogonal to `SettingsLocation`**: kind says who a setting is for, location says where it's stored. Hand-written keys default to `.user`, so the axis is backward compatible.
+
+Three macros in `SharedSettingsMacros` declare a namespace of settings, one line each:
+
+```swift
+@UserSettings enum AppSettings { static var showTips: Bool = true }
+@DeveloperSettings enum DevFlags { static var useStagingAPI: Bool = false }
+@BuildSettings enum Build { static let apiBase = "https://api.example.com" }
+```
+
+Expansion, per member: a peer `SettingsKey` type (property name capitalized — `DevFlags.UseStagingAPI`, storage key `"DevFlags.useStagingAPI"`), an accessor rewrite turning the member into a computed property over `SharedSettings`, and an entry in the namespace's generated `allSettings` catalog.
+
+Constraints worth remembering:
+
+- `@UserSettings`/`@DeveloperSettings` members must be `var` **with an explicit type** — an accessor macro drops the initializer, so the type can't be inferred. `@BuildSettings` members must be `let`. Both are enforced with diagnostics in `SettingsNamespaceMacro.validate`.
+- The generated property reads through `SharedSettings`, not `ObservedSettings`, because it's nonisolated. SwiftUI observation comes from `@Setting(Namespace.Key.self)` or from `SettingsEntry` (which routes through `ObservedSettings`).
+- `.buildTime` is intercepted in `SharedSettings`' subscript and `set(_:forKey:)` before any store is consulted: reads return `defaultValue`, writes are no-ops.
+- `SharedSettings.isDeveloperBuild` (DEBUG-defaulted, runtime-settable) gates **UI only** — `.developer` reads/writes behave identically in every build, so there's no second code path to test.
+- `allSettings` exists because Swift can't enumerate conforming types at runtime; `DeveloperSettingsScreen(DevFlags.self, …)` takes namespaces explicitly rather than relying on a global registry.
 
 ### Custom UserDefaults Support
 
@@ -275,7 +298,10 @@ This pattern ensures:
 ## File Organization
 
 ### Sources/SharedSettings/
-- `SettingsKey.swift` - Protocol definition with default `name` and `location` implementations
+- `SettingsKey.swift` - Protocol definition with default `name`, `location`, and `kind` implementations
+- `SettingsKind.swift` - `SettingsKind` enum and the `SharedSettings.isDeveloperBuild` gate
+- `SettingsEntry.swift` - Type-erased setting + the `SettingsNamespace` protocol the macros conform to
+- `DeveloperSettingsScreen.swift` / `SettingsEntryRow.swift` - Built-in debug menu over a namespace's `allSettings`
 - `SettingsKey+UserDefaults.swift` - Type-specific UserDefaults implementations for all supported types
 - `SettingsKey+CloudKit.swift` - Type-specific CloudKit implementations for all supported types
 - `SettingsKey+Keychain.swift` - Type-specific Keychain implementations for all supported types
@@ -284,6 +310,16 @@ This pattern ensures:
 - `SettingsWrapper.swift` - `@Setting` property wrapper for SwiftUI
 - `SecureURLStore.swift` - Standalone helper for persisting security-scoped URL bookmarks (not a SettingsKey backend)
 
+### Sources/SharedSettingsMacros/ (macro declarations, opt-in product)
+- `MemorySetting.swift` - `@MemorySetting` — one-line `.memory` key
+- `SettingsNamespaces.swift` - `@UserSettings`, `@DeveloperSettings`, `@BuildSettings`, and the internal per-member entry macros
+
+### Sources/SharedSettingsMacroPlugin/ (macro implementations)
+- `MemorySettingMacro.swift` - Backs `@MemorySetting`
+- `SettingsNamespaceMacro.swift` - Backs the three namespace macros (member attributes, `allSettings`, conformance)
+- `SettingEntryMacro.swift` - Generates each member's `SettingsKey` and rewrites the member into a computed property
+- `SettingDeclaration.swift` - Member parsing, title humanization, diagnostics
+
 ### Tests/SharedSettingsTests/
 - `BasicSettingsTests.swift` - Core CRUD operations (8 tests)
 - `TypeSpecificTests.swift` - All supported types: String, Bool, Int, Double, URL, Data, Date, Arrays, Enums, Codable (30 tests)
@@ -291,5 +327,10 @@ This pattern ensures:
 - `EdgeCaseTests.swift` - Error handling, corrupt data, nil vs default values (16 tests)
 - `SwiftUIIntegrationTests.swift` - Property wrappers, bindings, ObservedSettings, MainActor isolation (13 tests)
 - `KeychainTests.swift` - Keychain storage for all types, CRUD operations, persistence (15 tests)
+- `SettingsKindTests.swift` - `SettingsKind` defaults, build-time read/write behavior, the developer-build gate (6 tests)
+
+### Tests/SharedSettingsMacrosTests/
+- `MemorySettingTests.swift` - `@MemorySetting` expansion behavior (2 tests)
+- `SettingsNamespaceTests.swift` - Namespace macros: generated keys, catalog, titles, build-time immutability (13 tests)
 
 All test files use Swift Testing framework with `@Suite`, `@Test`, and `#expect` macros.

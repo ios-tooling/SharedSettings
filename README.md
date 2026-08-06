@@ -9,6 +9,7 @@ A type-safe, thread-safe, SwiftUI-friendly settings library for Apple platforms.
 
 - **Type-safe** — compile-time type checking for all settings
 - **Three backends** — UserDefaults, CloudKit (iCloud sync), and Keychain (secure storage)
+- **Three kinds** — user, developer, and build-time settings, one line of code each
 - **Swift 6 concurrency** — `Sendable`, `OSAllocatedUnfairLock`, no `@unchecked` hacks
 - **SwiftUI-native** — `@Setting` property wrapper, `@Observable` `ObservedSettings`, `Binding` support
 - **Fully testable** — instance-based design for isolated tests
@@ -40,8 +41,11 @@ public protocol SettingsKey<Payload>: Sendable {
     static var defaultValue: Payload { get }       // Returned when key is absent
     static var name: String { get }                // Storage key (defaults to type name)
     static var location: SettingsLocation { get }  // .userDefaults | .cloudKit | .keychain
+    static var kind: SettingsKind { get }          // .user | .developer | .buildTime
 }
 ```
+
+Most keys never mention `kind` — see [Settings Kinds](#settings-kinds), where the macros declare it for you.
 
 ### SettingsLocation
 
@@ -314,6 +318,112 @@ SharedSettings.instance[AppSettings.Theme.self] = "dark"
 SharedSettings.instance[AppSettings.Sync.Language.self] = "es"
 SharedSettings.instance[AppSettings.Secure.APIToken.self] = token
 ```
+
+---
+
+## Settings Kinds
+
+`SettingsLocation` says *where* a setting lives; `SettingsKind` says *who it's for*. The three
+kinds each get a macro that turns one line into a full `SettingsKey`.
+
+```swift
+import SharedSettingsMacros
+```
+
+| Kind | Macro | Purpose |
+|---|---|---|
+| `.user` | `@UserSettings` | Preferences every user can change |
+| `.developer` | `@DeveloperSettings` | Test flags, shown only in developer builds |
+| `.buildTime` | `@BuildSettings` | Constants baked in at compile time |
+
+### Declaring settings
+
+```swift
+@UserSettings enum AppSettings {
+    static var showTips: Bool = true
+    static var refreshInterval: Double = 30
+}
+
+@DeveloperSettings enum DevFlags {
+    static var useStagingAPI: Bool = false
+    static var animationSpeed: Double = 1
+}
+
+@BuildSettings enum Build {
+    static let apiBase = "https://api.example.com"
+    static let logsNetworkTraffic = false
+}
+```
+
+Read and write them like plain properties, from anywhere:
+
+```swift
+AppSettings.showTips = false      // persisted to UserDefaults
+DevFlags.useStagingAPI           // false unless a tester flipped it
+Build.apiBase                    // read-only constant, no storage consulted
+```
+
+Each member also generates a `SettingsKey` named by capitalizing the property, so the usual API
+— including SwiftUI observation — still works:
+
+```swift
+@Setting(AppSettings.ShowTips.self) var showTips   // observable in a view; $showTips is a Binding
+SharedSettings[DevFlags.UseStagingAPI.self] = true
+```
+
+> The generated `AppSettings.showTips` property reads through `SharedSettings` and is *not*
+> observed by SwiftUI. Inside a `View`, use `@Setting(AppSettings.ShowTips.self)`.
+
+Two rules the macros enforce with a clear compiler error:
+
+- `@UserSettings` / `@DeveloperSettings` members are `var` **with an explicit type** — the macro
+  rewrites them into computed properties, so the type can't be inferred from the initializer.
+- `@BuildSettings` members are `let` — they're constants, and stay exactly what you wrote.
+
+### Storage location
+
+Namespaces default to `.userDefaults`; pass a location to change it for every member:
+
+```swift
+@DeveloperSettings(.memory) enum SessionFlags {   // reset on every launch
+    static var pretendOffline: Bool = false
+}
+
+@UserSettings(.cloudKit) enum SyncedPrefs {
+    static var theme: String = "light"
+}
+```
+
+Build settings ignore location entirely — reads always return the declared constant and writes
+are no-ops, so a stale stored value can never survive a rebuild.
+
+### The developer settings screen
+
+Each namespace exposes `allSettings`, a catalog of type-erased `SettingsEntry` values, and
+`DeveloperSettingsScreen` renders it — toggles for `Bool`, text fields for `String`/`Int`/`Double`,
+read-only rows for build settings and other payloads:
+
+```swift
+NavigationLink("Developer") {
+    DeveloperSettingsScreen(DevFlags.self, Build.self)
+}
+```
+
+Pass namespaces explicitly (Swift can't discover conforming types at runtime), or build your own
+UI from `DevFlags.allSettings`.
+
+### Gating developer builds
+
+```swift
+SharedSettings.isDeveloperBuild = true
+```
+
+Defaults to `true` in DEBUG builds, `false` otherwise. `DeveloperSettingsScreen` self-gates on it,
+so a debug menu left unhidden in a shipping build still shows nothing. Set it at launch to open
+developer settings up in a TestFlight build, or flip it behind a hidden gesture.
+
+It deliberately does **not** affect reads or writes — a `.developer` setting behaves identically in
+every build, so a value a tester set keeps working and there's no second code path to test.
 
 ---
 
