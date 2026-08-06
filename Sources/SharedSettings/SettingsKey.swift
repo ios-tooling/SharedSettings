@@ -14,6 +14,7 @@ public protocol SettingsKey<Payload>: Sendable {
 	static var defaultValue: Payload { get }
 	static var name: String { get }
 	static var location: SettingsLocation { get }
+	static var kind: SettingsKind { get }
 
 	nonisolated static func from(userDefaults: UserDefaults) -> Payload?
 	nonisolated static func set(_ value: Payload?, in userDefaults: UserDefaults)
@@ -38,6 +39,7 @@ extension SettingsKey {
 
 public extension SettingsKey {
 	static var location: SettingsLocation { .userDefaults }
+	static var kind: SettingsKind { .user }
 }
 
 public extension SettingsKey {

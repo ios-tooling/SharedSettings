@@ -42,6 +42,10 @@ nonisolated public final class SharedSettings: Sendable {
 
 	nonisolated subscript<Key: SettingsKey>(_ key: Key.Type) -> Key.Payload  {
 		get {
+			// A build-time setting is a compile-time constant: no store is consulted, so a
+			// stale value can never survive a rebuild that changed the declaration.
+			if key.kind == .buildTime { return key.defaultValue }
+
 			switch key.location {
 			case .userDefaults:
 				// UserDefaults is itself thread-safe, so the lock only needs to
@@ -67,6 +71,8 @@ nonisolated public final class SharedSettings: Sendable {
 	}
 	
 	func set<Key: SettingsKey>(_ value: Key.Payload?, forKey key: Key.Type) {
+		if key.kind == .buildTime { return }   // fixed at build time; writes are a no-op
+
 		switch key.location {
 		case .userDefaults:
 			// See the getter: snapshot the store, then write (which may
