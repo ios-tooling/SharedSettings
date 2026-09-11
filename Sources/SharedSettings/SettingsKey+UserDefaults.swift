@@ -87,16 +87,16 @@ extension SettingsKey where Payload == Double {
 extension SettingsKey where Payload: Codable {
 	public static func from(userDefaults: UserDefaults) -> Payload? {
 		guard let data = userDefaults.data(forKey: name) else { return nil }
-		return try? JSONDecoder().decode(Payload.self, from: data)
+		return try? SharedSettings.decode(Payload.self, from: data)
 	}
 	
 	public static func set(_ value: Payload?, in userDefaults: UserDefaults) {
-		guard let value else {
+		guard let value, !clears(value) else {
 			userDefaults.removeObject(forKey: name)
 			return
 		}
 
-		if let data = try? JSONEncoder().encode(value) {
+		if let data = try? SharedSettings.encode(value) {
 			userDefaults.set(data, forKey: name)
 		}
 	}

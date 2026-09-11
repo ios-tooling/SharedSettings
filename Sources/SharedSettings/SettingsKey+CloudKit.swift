@@ -90,16 +90,16 @@ extension SettingsKey where Payload == Double {
 extension SettingsKey where Payload: Codable {
 	public static func fromCloudKit() -> Payload? {
 		guard let data = cloudKitKeyValueStore.data(forKey: name) else { return nil }
-		return try? JSONDecoder().decode(Payload.self, from: data)
+		return try? SharedSettings.decode(Payload.self, from: data)
 	}
 	
 	public static func setInCloudKit(_ value: Payload?) {
-		guard let value else {
+		guard let value, !clears(value) else {
 			cloudKitKeyValueStore.removeObject(forKey: name)
 			return
 		}
 
-		if let data = try? JSONEncoder().encode(value) {
+		if let data = try? SharedSettings.encode(value) {
 			cloudKitKeyValueStore.set(data, forKey: name)
 		}
 	}

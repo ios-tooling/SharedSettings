@@ -208,7 +208,8 @@ extension SettingsKey where Payload: Codable {
 	
 	public static func setInKeychain(_ value: Payload?) {
 		do {
-			return try Keychain.set(value, forKey: name)
+			// A cleared Optional payload removes the item rather than storing `null`.
+			return try Keychain.set(clears(value) ? nil : value, forKey: name)
 		} catch {
 			reportKeychainError(error, for: name)
 		}
