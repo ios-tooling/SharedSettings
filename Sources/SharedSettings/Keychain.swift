@@ -60,6 +60,11 @@ struct Keychain {
 		try delete(key) // Delete any existing key before saving it
 		
 		guard let value else { return }
+		if usesMemory {
+			let service = service.withLock { $0 }
+			memory.withLock { $0?[memoryKey(key, service: service)] = value }
+			return
+		}
 		
 		let query: [String: Sendable] = [
 			Constants.keychainClass: kSecClassGenericPassword,
@@ -138,6 +143,7 @@ struct Keychain {
 	private static let legacyService = ""
 
 	private static nonisolated func data(forKey key: String, service: String) throws -> Data? {
+		if usesMemory { return memory.withLock { $0?[memoryKey(key, service: service)] } }
 		var result: AnyObject?
 		let query: [String: Sendable] = [
 			Constants.keychainClass: kSecClassGenericPassword,
@@ -170,6 +176,10 @@ struct Keychain {
 	/// legacy item with the same account name — never another service's item.
 	nonisolated static func delete(_ key: String) throws {
 		for service in [service.withLock { $0 }, legacyService] {
+			if usesMemory {
+				memory.withLock { _ = $0?.removeValue(forKey: memoryKey(key, service: service)) }
+				continue
+			}
 			let query: [String: Sendable] = [
 				Constants.keychainClass: kSecClassGenericPassword,
 				Constants.attrService: service,

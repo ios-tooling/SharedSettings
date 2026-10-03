@@ -29,6 +29,22 @@ struct KeychainTestsTests {
 		#expect(SharedSettings[TestSettingsKey.self] == testValue)
 	}
 	
+	@Test("In-memory keychain round-trips, deletes, and starts empty")
+	func inMemoryKeychain() throws {
+		struct TestSettingsKey: SettingsKey { static let defaultValue = "default"; static let location = SettingsLocation.keychain }
+		SharedSettings.useInMemoryKeychain()
+		defer { SharedSettings.useSystemKeychain() }
+
+		SharedSettings[TestSettingsKey.self] = "in memory"
+		#expect(SharedSettings[TestSettingsKey.self] == "in memory")
+		try Keychain.delete(TestSettingsKey.name)
+		#expect(SharedSettings[TestSettingsKey.self] == TestSettingsKey.defaultValue)
+
+		SharedSettings[TestSettingsKey.self] = "dropped"
+		SharedSettings.useInMemoryKeychain()
+		#expect(SharedSettings[TestSettingsKey.self] == TestSettingsKey.defaultValue, "switching on again starts empty")
+	}
+
 	@Test("Fetch missing keychain setting")
 	func fetchMissingKeychain() throws {
 		struct TestSettingsKey: SettingsKey { static let defaultValue = "default"; static let location = SettingsLocation.keychain }
