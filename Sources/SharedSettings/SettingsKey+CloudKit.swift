@@ -28,9 +28,12 @@ extension SettingsKey where Payload == String {
 
 extension SettingsKey where Payload == Bool {
 	public static func fromCloudKit() -> Payload? {
-		cloudKitKeyValueStore.bool(forKey: name)
+		if cloudKitKeyValueStore.object(forKey: name) == nil { return nil }
+		return cloudKitKeyValueStore.bool(forKey: name)
 	}
-	public static func setInCloudKit(_ value: Payload?) { cloudKitKeyValueStore.set(value, forKey: name) }
+	public static func setInCloudKit(_ value: Payload?) {
+		if let value { cloudKitKeyValueStore.set(value, forKey: name) } else { cloudKitKeyValueStore.removeObject(forKey: name) }
+	}
 }
 
 extension SettingsKey where Payload == URL {
