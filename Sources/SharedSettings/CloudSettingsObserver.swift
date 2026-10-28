@@ -33,6 +33,8 @@ enum CloudSettingsObserver {
 			object: store,
 			queue: nil
 		) { note in
+			// Drop the stale cached values first, so observers re-read what just arrived.
+			CloudSettingsCache.shared.invalidate(externalChange: note.userInfo)
 			var forwarded: [AnyHashable: Any] = [:]
 			if let keys = note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] {
 				forwarded[SharedSettings.changedKeysUserInfoKey] = keys
